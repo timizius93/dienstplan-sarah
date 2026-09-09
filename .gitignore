@@ -1,0 +1,8 @@
+# Persönliche Unterlagen – enthalten Namen von Kolleginnen, nie veröffentlichen
+*.pdf
+*.png
+!icons/*.png
+
+# System
+.DS_Store
+Thumbs.db

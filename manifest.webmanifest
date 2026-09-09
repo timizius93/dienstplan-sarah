@@ -1,0 +1,16 @@
+{
+  "name": "Dienstplan Sarah",
+  "short_name": "Dienstplan",
+  "description": "Arbeitszeitplaner: Dienste, VZ und Termine pro Woche, Ist-Stunden gegen 39 h Soll.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBF8F3",
+  "theme_color": "#FBF8F3",
+  "lang": "de",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

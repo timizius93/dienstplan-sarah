@@ -329,7 +329,7 @@
     html += '<button class="list-row" type="button" data-action="sheet-import"><div class="row-main"><div class="row-title">Backup importieren</div></div><div class="row-value">' + icon('download') + '</div></button>';
     html += '<button class="list-row row-danger" type="button" data-action="confirm-reset"><div class="row-main"><div class="row-title">Alle Daten löschen</div></div></button>';
     html += '</div>';
-    html += '<div class="footer-note">Dienstplan Sarah · Version ' + esc(window.APP_VERSION || '1.0') + '<br>Alle Daten bleiben auf diesem iPhone. Regelmäßig ein Backup exportieren.</div>';
+    html += '<div class="footer-note">Dienstplan Sarah · Version ' + esc(window.APP_VERSION || '1.0') + '<br>Alle Daten bleiben auf diesem iPhone. Regelmäßig ein Backup exportieren.<br><span class="diag">' + esc(diagLine()) + '</span></div>';
     $('#screen-einstellungen').innerHTML = html;
 
     function row(action, data, value, labels) {
@@ -338,6 +338,19 @@
       Object.keys(data).forEach(function (k) { attrs += ' data-' + k.replace(/[A-Z]/g, function (m) { return '-' + m.toLowerCase(); }) + '="' + esc(data[k]) + '"'; });
       return '<button class="list-row" type="button" data-action="' + action + '"' + attrs + '><div class="row-main"><div class="row-title">' + esc(labels.title) + '</div>' + (labels.sub ? '<div class="row-sub">' + esc(labels.sub) + '</div>' : '') + '</div><div class="row-value">' + (value ? '<span>' + esc(value) + '</span>' : '') + icon('chev-right', 16) + '</div></button>';
     }
+  }
+
+  // Kleine Diagnosezeile für Layout-Fragen auf dem iPhone (Bildschirm-, Fenster- und App-Höhe).
+  function diagLine() {
+    try {
+      const app = document.getElementById('app');
+      const cs = getComputedStyle(document.documentElement);
+      const standalone = (navigator.standalone === true) || window.matchMedia('(display-mode: standalone)').matches;
+      return 'Anzeige ' + screen.width + '×' + screen.height + ' · Fenster ' + window.innerWidth + '×' + window.innerHeight +
+        ' · App ' + Math.round(app.getBoundingClientRect().height) +
+        ' · Rand oben ' + (cs.getPropertyValue('--safe-top') || '').trim() + ' unten ' + (cs.getPropertyValue('--safe-bottom') || '').trim() +
+        ' · ' + (standalone ? 'Home-Bildschirm' : 'Browser');
+    } catch (err) { return ''; }
   }
 
   // ---------- Sheets ----------

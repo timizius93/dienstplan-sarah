@@ -1,6 +1,9 @@
 # Persönliche Unterlagen – enthalten Namen von Kolleginnen, nie veröffentlichen
 *.pdf
 *.png
+*.PNG
+*.jpg
+*.jpeg
 !icons/*.png
 
 # System

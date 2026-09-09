@@ -38,14 +38,12 @@ body {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
-  /* Fester Rahmen in echter Bildschirmhöhe. Auf dem iPhone-Home-Bildschirm ist die
-     Bezugsfläche für „bottom: 0“ um die Statusleiste verkürzt, 100vh/100dvh nicht. */
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  height: calc(100vh + var(--app-extra, 0px));
-  height: calc(100dvh + var(--app-extra, 0px));
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 /* Milchiger Hintergrund hinter der Statusleiste, damit gescrollter Inhalt nicht mit der Uhr kollidiert */

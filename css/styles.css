@@ -44,9 +44,20 @@ body {
   top: 0;
   left: 0;
   width: 100%;
-  height: 100vh;
-  height: 100dvh;
+  height: calc(100vh + var(--app-extra, 0px));
+  height: calc(100dvh + var(--app-extra, 0px));
   overflow: hidden;
+}
+/* Milchiger Hintergrund hinter der Statusleiste, damit gescrollter Inhalt nicht mit der Uhr kollidiert */
+.statusbar-cover {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: var(--safe-top);
+  background: rgba(251, 248, 243, 0.82);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  z-index: 6;
+  pointer-events: none;
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 button {

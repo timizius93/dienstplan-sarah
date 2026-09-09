@@ -16,6 +16,24 @@
     showMoreShifts: false
   };
 
+  // iPhone-Home-Bildschirm: iOS meldet das Fenster um die Statusleiste zu klein (z. B. 793 statt 852),
+  // zeichnet aber ab dem oberen Rand. Den gemessenen Unterschied hängen wir unten an den Rahmen an.
+  function fixViewport() {
+    let extra = 0;
+    try {
+      const standalone = (navigator.standalone === true) || window.matchMedia('(display-mode: standalone)').matches;
+      const portrait = window.innerWidth <= window.innerHeight;
+      if (standalone && portrait) {
+        const safeTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 0;
+        const short = screen.height - window.innerHeight;
+        if (short > 0 && short <= safeTop + 2) extra = short;
+      }
+    } catch (err) { extra = 0; }
+    document.documentElement.style.setProperty('--app-extra', extra + 'px');
+  }
+  fixViewport();
+  window.addEventListener('orientationchange', function () { setTimeout(fixViewport, 300); });
+
   // ---------- Start ----------
   (function initView() {
     const t = C.today();
@@ -349,6 +367,7 @@
       return 'Anzeige ' + screen.width + '×' + screen.height + ' · Fenster ' + window.innerWidth + '×' + window.innerHeight +
         ' · App ' + Math.round(app.getBoundingClientRect().height) +
         ' · Rand oben ' + (cs.getPropertyValue('--safe-top') || '').trim() + ' unten ' + (cs.getPropertyValue('--safe-bottom') || '').trim() +
+        ' · Ausgleich ' + (document.documentElement.style.getPropertyValue('--app-extra') || '0px') +
         ' · ' + (standalone ? 'Home-Bildschirm' : 'Browser');
     } catch (err) { return ''; }
   }

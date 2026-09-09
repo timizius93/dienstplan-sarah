@@ -4,6 +4,7 @@
 
   const C = window.Calc;
   const D = window.Data;
+  const APP_VERSION = '1.0.3'; // bei jeder Änderung zusammen mit VERSION in sw.js hochzählen
 
   let state = D.loadState();
 
@@ -347,7 +348,7 @@
     html += '<button class="list-row" type="button" data-action="sheet-import"><div class="row-main"><div class="row-title">Backup importieren</div></div><div class="row-value">' + icon('download') + '</div></button>';
     html += '<button class="list-row row-danger" type="button" data-action="confirm-reset"><div class="row-main"><div class="row-title">Alle Daten löschen</div></div></button>';
     html += '</div>';
-    html += '<div class="footer-note">Dienstplan Sarah · Version ' + esc(window.APP_VERSION || '1.0') + '<br>Alle Daten bleiben auf diesem iPhone. Regelmäßig ein Backup exportieren.<br><span class="diag">' + esc(diagLine()) + '</span></div>';
+    html += '<div class="footer-note">Dienstplan Sarah · Version ' + esc(APP_VERSION) + '<br>Alle Daten bleiben auf diesem iPhone. Regelmäßig ein Backup exportieren.<br><span class="diag">' + esc(diagLine()) + '</span></div>';
     $('#screen-einstellungen').innerHTML = html;
 
     function row(action, data, value, labels) {
@@ -950,7 +951,11 @@
   // Service Worker + Update-Hinweis
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('./sw.js').then(function (reg) {
+      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function (reg) {
+        // Bei jedem Öffnen der App nach einer neuen Version suchen
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') reg.update().catch(function () {});
+        });
         reg.addEventListener('updatefound', function () {
           const nw = reg.installing;
           if (!nw) return;

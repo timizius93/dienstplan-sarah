@@ -1,6 +1,6 @@
 /* Service Worker: alle App-Dateien werden beim Installieren gecacht, danach läuft die App offline.
    Bei jeder Änderung an der App die VERSION erhöhen – dann holt sich das iPhone die neuen Dateien. */
-const VERSION = 'v1.0.4';
+const VERSION = 'v1.0.5';
 const CACHE = 'dienstplan-sarah-' + VERSION;
 const FILES = [
   './',

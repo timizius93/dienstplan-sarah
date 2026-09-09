@@ -4,7 +4,7 @@
 
   const C = window.Calc;
   const D = window.Data;
-  const APP_VERSION = '1.0.4'; // bei jeder Änderung zusammen mit VERSION in sw.js hochzählen
+  const APP_VERSION = '1.0.5'; // bei jeder Änderung zusammen mit VERSION in sw.js hochzählen
 
   let state = D.loadState();
 
@@ -16,6 +16,23 @@
     sheet: null,           // { type, ...daten }
     showMoreShifts: false
   };
+
+  // Alte Installationen mit durchsichtiger Statusleiste: iOS zeichnet nur (Bildschirm − Statusleiste)
+  // Punkte ab der Oberkante, der Home-Balken liegt im toten Streifen darunter. Dann braucht die
+  // Tab-Leiste keinen Abstand nach unten. Bei neuen Installationen (Modus „default“) greift das nicht.
+  let legacyStatusBar = false;
+  (function detectLegacyStatusBar() {
+    try {
+      const standalone = (navigator.standalone === true) || window.matchMedia('(display-mode: standalone)').matches;
+      const safeTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 0;
+      const short = screen.height - window.innerHeight;
+      if (standalone && window.innerWidth <= window.innerHeight && safeTop > 0 && short > 0 && Math.abs(short - safeTop) <= 2) {
+        legacyStatusBar = true;
+        document.documentElement.style.setProperty('--safe-bottom', '0px');
+        document.documentElement.classList.add('legacy-statusbar');
+      }
+    } catch (err) { legacyStatusBar = false; }
+  })();
 
   // ---------- Start ----------
   (function initView() {
@@ -350,7 +367,7 @@
       return 'Anzeige ' + screen.width + '×' + screen.height + ' · Fenster ' + window.innerWidth + '×' + window.innerHeight +
         ' · App ' + Math.round(app.getBoundingClientRect().height) +
         ' · Rand oben ' + (cs.getPropertyValue('--safe-top') || '').trim() + ' unten ' + (cs.getPropertyValue('--safe-bottom') || '').trim() +
-        ' · ' + (standalone ? 'Home-Bildschirm' : 'Browser');
+        ' · ' + (standalone ? (legacyStatusBar ? 'Home-Bildschirm (alte Installation, Symbol neu hinzufügen)' : 'Home-Bildschirm') : 'Browser');
     } catch (err) { return ''; }
   }
 

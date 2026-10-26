@@ -217,19 +217,44 @@
     const keys = Object.keys(state.weeks).filter(function (k) { return state.weeks[k] && state.weeks[k].shiftId; }).sort();
     return keys.length ? keys[0] : null;
   }
-  // Summe (Ist − Soll) über abgeschlossene Wochen ab Startwoche bis zur Vorwoche.
+  // Soll je Tag: Wochen-Soll verteilt auf Mo–Fr
+  function dayTarget(state, dateStr) {
+    return isWeekend(dateStr) ? 0 : (Number(state.settings.targetHours) || 0) / 5;
+  }
+  // Neuester Abgleich mit der Stempeluhr bis einschließlich dateStr (mit before = true: nur davor).
+  function lastSaldoCheck(state, dateStr, before) {
+    let best = null;
+    (state.saldoChecks || []).forEach(function (c) {
+      if (c.date > dateStr || (before && c.date === dateStr)) return;
+      if (!best || c.date > best.date) best = c;
+    });
+    return best;
+  }
+  // Saldo am Ende von dateStr: neuester Abgleich plus (Ist − Soll) der Tage danach,
+  // ohne Abgleich ab Montag der Startwoche. ignoreSameDay: einen Abgleich an genau diesem Tag übergehen.
+  function saldoAt(state, dateStr, ignoreSameDay) {
+    const check = lastSaldoCheck(state, dateStr, ignoreSameDay);
+    let from, sum;
+    if (check) {
+      from = addDays(check.date, 1);
+      sum = check.value;
+    } else {
+      const startKey = state.settings.saldoStartWeek || firstWeekWithShift(state);
+      if (!startKey) return 0;
+      from = weekStartOf(startKey);
+      sum = 0;
+    }
+    for (let d = from; d <= dateStr; d = addDays(d, 1)) sum += dayHours(state, d) - dayTarget(state, d);
+    return round2(sum);
+  }
+  // Saldo für die Übersicht: bis Ende der Vorwoche, bei einem jüngeren Abgleich bis zu dessen Tag.
   function saldo(state, currentKey) {
     const startKey = state.settings.saldoStartWeek || firstWeekWithShift(state);
-    if (!startKey) return { value: 0, startKey: null, weeks: 0 };
-    const lastKey = shiftWeek(currentKey, -1);
-    const n = weeksBetween(startKey, lastKey);
-    if (n < 0) return { value: 0, startKey: startKey, weeks: 0 };
-    let sum = 0;
-    for (let i = 0; i <= n; i++) {
-      const k = shiftWeek(startKey, i);
-      sum += weekHours(state, k).total - state.settings.targetHours;
-    }
-    return { value: round2(sum), startKey: startKey, weeks: n + 1 };
+    const lastDay = addDays(weekStartOf(currentKey), -1);
+    const check = lastSaldoCheck(state, addDays(lastDay, 7));
+    const until = check && check.date > lastDay ? check.date : lastDay;
+    const weeks = startKey ? Math.max(0, weeksBetween(startKey, currentKey)) : 0;
+    return { value: saldoAt(state, until), startKey: startKey, weeks: weeks, check: check, until: until };
   }
 
   // ---------- Anzeige ----------
@@ -260,7 +285,7 @@
     shiftById: shiftById, shiftHours: shiftHours, weekRecord: weekRecord, resolveDay: resolveDay,
     seriesOccursOn: seriesOccursOn, nextOccurrence: nextOccurrence,
     absenceLabel: absenceLabel, dayItems: dayItems, dayHours: dayHours, weekHours: weekHours, round2: round2,
-    saldo: saldo, firstWeekWithShift: firstWeekWithShift,
+    saldo: saldo, saldoAt: saldoAt, lastSaldoCheck: lastSaldoCheck, firstWeekWithShift: firstWeekWithShift,
     formatHours: formatHours, formatSigned: formatSigned,
     WEEKDAYS_SHORT: WEEKDAYS_SHORT, WEEKDAYS_LONG: WEEKDAYS_LONG, MONTHS_LONG: MONTHS_LONG, MONTHS_SHORT: MONTHS_SHORT
   };

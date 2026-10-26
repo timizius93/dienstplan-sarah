@@ -53,7 +53,8 @@
       shifts: clone(DEFAULT_SHIFTS),
       weeks: {},     // "2026-W37": { shiftId, days: { "2026-09-10": { shiftId } | { absence } } }
       entries: [],   // { id, date, title, start, end, kind: 'vz' | 'termin' }
-      series: []     // { id, title, weekday(1=Mo..7=So), start, end, interval, from, until, skipDates: [], extraDates: [{date,start,end}] }
+      series: [],    // { id, title, weekday(1=Mo..7=So), start, end, interval, from, until, skipDates: [], extraDates: [{date,start,end}] }
+      saldoChecks: [] // { id, date, value, appValue }: Saldo laut Stempeluhr am Ende von date, appValue = Rechnung der App davor
     };
   }
 
@@ -107,6 +108,16 @@
         extraDates: Array.isArray(se.extraDates) ? se.extraDates.map(function (x) {
           return typeof x === 'string' ? { date: x, start: se.start, end: se.end } : x;
         }) : []
+      };
+    }) : [];
+    s.saldoChecks = Array.isArray(raw.saldoChecks) ? raw.saldoChecks.filter(function (c) {
+      return c && /^\d{4}-\d{2}-\d{2}$/.test(c.date) && typeof c.value === 'number' && isFinite(c.value);
+    }).map(function (c) {
+      return {
+        id: String(c.id || uid()),
+        date: c.date,
+        value: c.value,
+        appValue: typeof c.appValue === 'number' && isFinite(c.appValue) ? c.appValue : null
       };
     }) : [];
     return s;

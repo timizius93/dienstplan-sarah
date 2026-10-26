@@ -20,7 +20,7 @@ Wichtig: Nur über das Home‑Bildschirm‑Symbol behält Safari die Daten dauer
 - **Tag bearbeiten**: Wochentag‑Überschrift oder Dienstkarte antippen. Dort einen anderen Dienst nur für diesen Tag setzen, Vertretung wählen oder Frei, Urlaub, Krank, Feiertag eintragen.
 - **VZ und Termine**: Über „+ VZ“, „+ Termin“ oder den schwarzen Plus‑Knopf oben rechts. Eintrag antippen zum Ändern oder Löschen.
 - **Termine**: Regelmäßige Termine als Serie anlegen (z. B. Dienstbesprechung montags). Ausnahmen: „Entfällt“ oder „Zusätzlich“.
-- **Übersicht**: Alle Wochen mit Dienst und Stunden, dazu der Saldo über die abgeschlossenen Wochen.
+- **Übersicht**: Alle Wochen mit Dienst und Stunden, dazu der Saldo über die abgeschlossenen Wochen. Saldo‑Karte antippen, um den Stand von der Stempeluhr zu übernehmen. Die App rechnet dann ab diesem Tag weiter.
 - **Einstellungen**: Soll‑Stunden, Anrechnung von Urlaub und Krankheit, Pause abziehen, Stundenanzeige (6,25 h oder 6:15 h), Dienste bearbeiten, Backup.
 
 ## Backup

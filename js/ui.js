@@ -4,7 +4,7 @@
 
   const C = window.Calc;
   const D = window.Data;
-  const APP_VERSION = '1.0.5'; // bei jeder Änderung zusammen mit VERSION in sw.js hochzählen
+  const APP_VERSION = '1.1.0'; // bei jeder Änderung zusammen mit VERSION in sw.js hochzählen
 
   let state = D.loadState();
 
@@ -267,8 +267,14 @@
     const target = Number(state.settings.targetHours) || 0;
     let html = '<div class="bg-glow bg-glow-a"></div>';
     html += '<div class="page-head"><h1>Übersicht</h1><div class="subtitle">Alle Wochen auf einen Blick</div></div>';
-    html += '<button class="saldo-card" type="button" data-action="sheet-saldo"><div><div class="saldo-label">' + (s.startKey ? 'Saldo seit ' + C.weekNumberLabel(s.startKey) + (C.parseWeekKey(s.startKey).year !== C.parseWeekKey(currentKey).year ? '/' + C.parseWeekKey(s.startKey).year : '') : 'Saldo') + '</div>';
-    html += '<div class="saldo-sub">' + (s.startKey ? 'Ist minus Soll, ' + s.weeks + ' abgeschlossene Woche' + (s.weeks === 1 ? '' : 'n') : 'Zählt ab der ersten Woche mit Dienst') + '</div></div>';
+    html += '<button class="saldo-card" type="button" data-action="sheet-saldo-check"><div>';
+    if (s.check) {
+      html += '<div class="saldo-label">Saldo</div>';
+      html += '<div class="saldo-sub">' + (s.until === s.check.date ? 'laut Stempeluhr am ' + esc(C.formatShort(s.check.date)) : 'Abgleich ' + esc(C.formatShort(s.check.date)) + ', danach laut Dienstplan') + '</div></div>';
+    } else {
+      html += '<div class="saldo-label">' + (s.startKey ? 'Saldo seit ' + C.weekNumberLabel(s.startKey) + (C.parseWeekKey(s.startKey).year !== C.parseWeekKey(currentKey).year ? '/' + C.parseWeekKey(s.startKey).year : '') : 'Saldo') + '</div>';
+      html += '<div class="saldo-sub">' + (s.startKey ? 'Ist minus Soll, ' + s.weeks + ' abgeschlossene Woche' + (s.weeks === 1 ? '' : 'n') : 'Zählt ab der ersten Woche mit Dienst') + '</div></div>';
+    }
     html += '<div class="saldo-value' + (s.value > 0.005 ? ' is-plus' : '') + '">' + esc(C.formatSigned(s.value, state.settings.hoursFormat)) + '</div></button>';
 
     const m = view.month;
@@ -339,7 +345,8 @@
     html += '<div class="section-label">Übersicht</div><div class="list">';
     const cur = C.weekKeyOf(C.today());
     const s = C.saldo(state, cur);
-    html += row('sheet-saldo', {}, s.startKey ? C.weekNumberLabel(s.startKey) + '/' + C.parseWeekKey(s.startKey).year : 'automatisch', { title: 'Saldo zählt ab', sub: st.saldoStartWeek ? 'manuell gesetzt' : 'erste Woche mit Dienst' });
+    html += row('sheet-saldo-check', {}, s.check ? C.formatShort(s.check.date) : '', { title: 'Saldo abgleichen', sub: 'Stempeluhr-Stand übernehmen' });
+    html += row('sheet-saldo', {}, s.startKey ? C.weekNumberLabel(s.startKey) + '/' + C.parseWeekKey(s.startKey).year : 'automatisch', { title: 'Saldo zählt ab', sub: s.check ? 'gilt nur ohne Abgleich' : (st.saldoStartWeek ? 'manuell gesetzt' : 'erste Woche mit Dienst') });
     html += '</div>';
 
     html += '<div class="section-label">Daten</div><div class="list">';
@@ -391,7 +398,7 @@
     const map = {
       'shift-week': sheetShiftWeek, day: sheetDay, entry: sheetEntry, 'series-occ': sheetSeriesOcc, series: sheetSeries,
       exception: sheetException, number: sheetNumber, timeline: sheetTimeline, shifts: sheetShifts, 'shift-edit': sheetShiftEdit,
-      saldo: sheetSaldo, 'import': sheetImport, confirm: sheetConfirm, text: sheetText
+      saldo: sheetSaldo, 'saldo-check': sheetSaldoCheck, 'import': sheetImport, confirm: sheetConfirm, text: sheetText
     };
     $('#sheet-content').innerHTML = map[sh.type](sh);
     $('#sheet-content').scrollTop = 0;
@@ -601,9 +608,41 @@
     const cur = C.weekKeyOf(C.today());
     const s = C.saldo(state, cur);
     let html = head('Saldo', 'Ab welcher Woche soll gezählt werden?');
-    html += '<div class="sheet-note">Der Saldo summiert Ist minus Soll über alle abgeschlossenen Wochen ab der Startwoche. Aktuell: ' + (s.startKey ? C.weekNumberLabel(s.startKey) + '/' + C.parseWeekKey(s.startKey).year : 'keine Woche mit Dienst') + '.</div>';
+    html += '<div class="sheet-note">Der Saldo summiert Ist minus Soll über alle abgeschlossenen Wochen ab der Startwoche. Aktuell: ' + (s.startKey ? C.weekNumberLabel(s.startKey) + '/' + C.parseWeekKey(s.startKey).year : 'keine Woche mit Dienst') + '.' + (s.check ? ' Seit dem Abgleich vom ' + esc(C.formatShort(s.check.date)) + ' rechnet die App von dort aus weiter, die Startwoche spielt dann keine Rolle.' : '') + '</div>';
     html += '<div class="field"><div class="sheet-label">Ein Datum in der Startwoche</div><input class="input" id="f-date" type="date" value="' + esc(s.startKey ? C.weekStartOf(s.startKey) : C.today()) + '"></div>';
     html += '<div class="sheet-actions"><button class="btn btn-primary" type="button" data-action="saldo-save">Speichern</button><button class="btn btn-secondary" type="button" data-action="saldo-auto">Automatisch (erste Woche mit Dienst)</button></div>';
+    return html;
+  }
+
+  function sheetSaldoCheck(sh) {
+    const todayStr = C.today();
+    const date = sh.date || todayStr;
+    const app = C.saldoAt(state, date, true);
+    const minus = app < -0.005;
+    let html = head('Saldo abgleichen', 'Stand von der Stempeluhr übernehmen');
+    html += '<div class="field"><div class="sheet-label">Stand laut Stempeluhr</div>';
+    html += '<div class="seg-control"><button class="seg-opt' + (minus ? '' : ' is-on') + '" type="button" data-action="check-sign" data-value="plus">Plusstunden</button><button class="seg-opt' + (minus ? ' is-on' : '') + '" type="button" data-action="check-sign" data-value="minus">Minusstunden</button></div>';
+    html += '<input type="hidden" id="f-sign" value="' + (minus ? 'minus' : 'plus') + '">';
+    if (state.settings.hoursFormat === 'hm') {
+      html += '<div class="field-2"><div class="field"><div class="sheet-label">Stunden</div><input class="input input-time" id="f-hours" type="text" inputmode="numeric" placeholder="0" autocomplete="off"></div><div class="field"><div class="sheet-label">Minuten</div><input class="input input-time" id="f-min" type="text" inputmode="numeric" placeholder="00" autocomplete="off"></div></div>';
+    } else {
+      html += '<input class="input input-time" id="f-hours" type="text" inputmode="decimal" placeholder="z. B. 3,75" autocomplete="off">';
+    }
+    html += '</div>';
+    html += '<div class="field"><div class="sheet-label">Stand am Ende von</div><input class="input" id="f-date" type="date" value="' + esc(date) + '" max="' + todayStr + '"></div>';
+    html += '<div class="sheet-note">Zählt die Stempeluhr heute schon mit (nach dem Ausstempeln), das heutige Datum lassen. Sonst gestern wählen.</div>';
+    html += '<div class="sheet-section"><div class="kv"><span class="k">App rechnet bis dahin</span><span class="v is-plain" id="f-app">' + esc(C.formatSigned(app, state.settings.hoursFormat)) + '</span></div>';
+    html += '<div class="kv"><span class="k">Abweichung</span><span class="v" id="f-diff">–</span></div></div>';
+    html += '<button class="btn btn-primary" type="button" data-action="check-save">Übernehmen</button>';
+    const checks = state.saldoChecks.slice().sort(function (a, b) { return C.compareDates(b.date, a.date); });
+    if (checks.length) {
+      html += '<div class="sheet-section"><div class="sheet-label">Bisherige Abgleiche</div><div class="series-meta">';
+      checks.forEach(function (c) {
+        const diff = c.appValue === null ? '' : '<span class="check-diff">(' + esc(C.formatSigned(C.round2(c.value - c.appValue), state.settings.hoursFormat).replace(' h', '')) + ')</span>';
+        html += '<div class="series-meta-row"><span class="k">' + C.dayLabelShort(c.date) + ', ' + esc(C.formatShort(c.date)) + '</span><span class="v">' + esc(C.formatSigned(c.value, state.settings.hoursFormat)) + diff + '<button class="x-btn" type="button" data-action="check-delete" data-id="' + c.id + '" aria-label="Abgleich löschen">' + icon('x', 12) + '</button></span></div>';
+      });
+      html += '</div><div class="sheet-note">Es zählt immer der neueste Abgleich. In Klammern steht, wie weit die App an dem Tag danebenlag.</div></div>';
+    }
     return html;
   }
 
@@ -631,6 +670,36 @@
   // ---------- Aktionen ----------
   function val(id) { const el = document.getElementById(id); return el ? el.value : ''; }
   function parseNum(text) { return Number(String(text).replace(',', '.')); }
+  // Stand aus dem Abgleich-Formular in Stunden, null wenn nichts Gültiges eingegeben ist
+  function readCheckValue() {
+    const text = val('f-hours').trim();
+    const minEl = document.getElementById('f-min');
+    let minus = val('f-sign') === 'minus';
+    let h;
+    if (minEl) {
+      const m = minEl.value.trim();
+      if (!text && !m) return null;
+      const hh = Number(text || 0), mm = Number(m || 0);
+      if (!(hh >= 0 && mm >= 0 && mm < 60) || hh % 1 || mm % 1) return null;
+      h = hh + mm / 60;
+    } else {
+      if (!text) return null;
+      if (/^[-−]/.test(text)) minus = true;
+      h = parseNum(text.replace(/^[-−+]\s*/, ''));
+      if (!(h >= 0)) return null;
+    }
+    if (h > 999) return null;
+    return minus && h ? -h : h;
+  }
+  function updateCheckPreview() {
+    const appEl = document.getElementById('f-app'), diffEl = document.getElementById('f-diff');
+    if (!appEl || !diffEl) return;
+    const date = val('f-date');
+    const app = date ? C.saldoAt(state, date, true) : null;
+    const value = readCheckValue();
+    appEl.textContent = app === null ? '–' : C.formatSigned(app, state.settings.hoursFormat);
+    diffEl.textContent = app === null || value === null ? '–' : C.formatSigned(C.round2(value - app), state.settings.hoursFormat);
+  }
   function ensureWeek(key) {
     if (!state.weeks[key]) state.weeks[key] = { shiftId: null, days: {} };
     if (!state.weeks[key].days) state.weeks[key].days = {};
@@ -853,6 +922,32 @@
       closeSheet(); commit();
     },
     'saldo-auto': function () { state.settings.saldoStartWeek = null; closeSheet(); commit(); },
+    'sheet-saldo-check': function () { openSheet({ type: 'saldo-check' }); },
+    'check-sign': function (d) {
+      document.getElementById('f-sign').value = d.value;
+      document.querySelectorAll('[data-action="check-sign"]').forEach(function (b) { b.classList.toggle('is-on', b.dataset.value === d.value); });
+      updateCheckPreview();
+    },
+    'check-save': function () {
+      const date = val('f-date');
+      if (!date) { toast('Bitte ein Datum wählen.'); return; }
+      if (date > C.today()) { toast('Der Stand kann nicht in der Zukunft liegen.'); return; }
+      const value = readCheckValue();
+      if (value === null) { toast('Bitte den Stand von der Stempeluhr eingeben.'); return; }
+      const appValue = C.saldoAt(state, date, true);
+      state.saldoChecks = state.saldoChecks.filter(function (c) { return c.date !== date; });
+      state.saldoChecks.push({ id: D.uid(), date: date, value: value, appValue: appValue });
+      closeSheet();
+      commit();
+      toast('Saldo abgeglichen');
+    },
+    'check-delete': function (d) {
+      const c = state.saldoChecks.find(function (x) { return x.id === d.id; });
+      if (!c) return;
+      state.saldoChecks = state.saldoChecks.filter(function (x) { return x.id !== d.id; });
+      commit();
+      toast('Abgleich vom ' + C.formatShort(c.date) + ' gelöscht', 'Rückgängig', function () { state.saldoChecks.push(c); commit(); });
+    },
     'confirm-yes': function () { const fn = view.sheet && view.sheet.onYes; closeSheet(); if (fn) fn(); },
     'confirm-reset': function () {
       openSheet({ type: 'confirm', title: 'Alle Daten löschen?', text: 'Dienste, Wochen, VZ und Termine auf diesem iPhone werden entfernt. Vorher ein Backup exportieren!', yes: 'Ja, alles löschen', onYes: function () {
@@ -920,6 +1015,7 @@
         dur.textContent = fmt(h);
       }
     }
+    if (ev.target.id === 'f-hours' || ev.target.id === 'f-min' || ev.target.id === 'f-date') updateCheckPreview();
   });
   document.getElementById('sheet-content').addEventListener('change', function (ev) {
     if (ev.target.id === 'f-file' && ev.target.files && ev.target.files[0]) {
@@ -927,6 +1023,7 @@
       reader.onload = function () { const ta = document.getElementById('f-json'); if (ta) ta.value = String(reader.result); };
       reader.readAsText(ev.target.files[0]);
     }
+    if (ev.target.id === 'f-date') updateCheckPreview();
   });
 
   // Wischen zwischen Wochen

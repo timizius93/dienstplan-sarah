@@ -554,6 +554,8 @@ input[type="date"].input::-webkit-date-and-time-value { text-align: left; }
 .kv { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
 .kv .k { font-size: 14px; font-weight: 600; color: var(--muted); }
 .kv .v { font-size: 16px; font-weight: 800; color: var(--orange); }
+.kv .v.is-plain { color: var(--text); }
+.check-diff { font-weight: 500; color: var(--muted); }
 .toggle { width: 51px; height: 31px; border-radius: 16px; background: #E5DED4; position: relative; flex-shrink: 0; transition: background 0.2s ease; }
 .toggle::after { content: ''; position: absolute; left: 2px; top: 2px; width: 27px; height: 27px; border-radius: 14px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.18); transition: transform 0.2s ease; }
 .toggle.is-on { background: var(--green); }

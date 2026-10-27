@@ -4,7 +4,7 @@
 
   const C = window.Calc;
   const D = window.Data;
-  const APP_VERSION = '1.1.0'; // bei jeder Änderung zusammen mit VERSION in sw.js hochzählen
+  const APP_VERSION = '1.1.1'; // bei jeder Änderung zusammen mit VERSION in sw.js hochzählen
 
   let state = D.loadState();
 
@@ -480,6 +480,8 @@
       });
       html += '</div>';
     }
+    const overlap = C.overlapMinutes(items);
+    if (overlap > 0) html += '<div class="sheet-note">Zeiten überschneiden sich um ' + esc(fmt(overlap / 60)) + '. Diese Zeit zählt nur einmal in der Tagessumme.</div>';
     html += '<div class="btn-row" style="margin:0"><button class="btn btn-outline is-vz" type="button" data-action="entry-new" data-kind="vz" data-date="' + d + '">' + icon('plus', 16) + 'VZ</button><button class="btn btn-outline is-termin" type="button" data-action="entry-new" data-kind="termin" data-date="' + d + '">' + icon('plus', 16) + 'Termin</button></div>';
     html += '</div>';
     html += '<button class="btn btn-primary" type="button" data-action="sheet-close">Fertig</button>';
@@ -786,6 +788,7 @@
       const date = val('f-date'), start = val('f-start'), end = val('f-end');
       if (!date || !start || !end) { toast('Bitte Datum, Von und Bis angeben.'); return; }
       if (C.toMinutes(end) <= C.toMinutes(start)) { toast('„Bis“ muss nach „Von“ liegen.'); return; }
+      const clash = C.overlappingItems(state, date, start, end, d.id);
       if (d.id) {
         const e = state.entries.find(function (x) { return x.id === d.id; });
         if (e) { e.kind = kind; e.title = title; e.date = date; e.start = start; e.end = end; }
@@ -796,7 +799,8 @@
       view.selectedDate = date;
       closeSheet();
       commit();
-      toast(title + ' gespeichert · ' + fmt(C.spanHours(start, end)));
+      if (clash.length) toast(title + ' überschneidet sich mit ' + clash.map(function (it) { return it.title + ' ' + it.start + ' – ' + it.end; }).join(', ') + '. Die gemeinsame Zeit zählt nur einmal.');
+      else toast(title + ' gespeichert · ' + fmt(C.spanHours(start, end)));
     },
     'entry-delete': function (d) {
       const e = state.entries.find(function (x) { return x.id === d.id; });

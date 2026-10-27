@@ -197,8 +197,41 @@
     });
     return items;
   }
+  // Minuten, die sich Blöcke mit Uhrzeit gegenseitig überdecken (zählen sonst doppelt).
+  function overlapMinutes(items) {
+    const spans = [];
+    items.forEach(function (it) {
+      if (it.start === null) return;
+      const a = toMinutes(it.start);
+      let b = toMinutes(it.end);
+      if (b <= a) b += 24 * 60;
+      spans.push([a, b]);
+    });
+    spans.sort(function (x, y) { return x[0] - y[0]; });
+    let total = 0, union = 0, curA = null, curB = null;
+    spans.forEach(function (s) {
+      total += s[1] - s[0];
+      if (curB === null || s[0] > curB) { if (curB !== null) union += curB - curA; curA = s[0]; curB = s[1]; }
+      else curB = Math.max(curB, s[1]);
+    });
+    if (curB !== null) union += curB - curA;
+    return total - union;
+  }
+  // Tagessumme: überschneidende Zeiten zählen nur einmal.
   function dayHours(state, dateStr) {
-    return dayItems(state, dateStr).reduce(function (sum, it) { return sum + it.hours; }, 0);
+    const items = dayItems(state, dateStr);
+    const sum = items.reduce(function (s, it) { return s + it.hours; }, 0);
+    return Math.max(0, sum - overlapMinutes(items) / 60);
+  }
+  // Blöcke des Tages, die sich mit start–end überschneiden (ohne den Eintrag excludeId).
+  function overlappingItems(state, dateStr, start, end, excludeId) {
+    const a = toMinutes(start), b = toMinutes(end);
+    return dayItems(state, dateStr).filter(function (it) {
+      if (it.start === null || (excludeId && it.id === excludeId)) return false;
+      let ia = toMinutes(it.start), ib = toMinutes(it.end);
+      if (ib <= ia) ib += 24 * 60;
+      return ia < b && a < ib;
+    });
   }
   function weekHours(state, key) {
     const days = weekDays(key);
@@ -284,7 +317,7 @@
     shiftWeek: shiftWeek, weekRangeLabel: weekRangeLabel, weekNumberLabel: weekNumberLabel, weeksBetween: weeksBetween,
     shiftById: shiftById, shiftHours: shiftHours, weekRecord: weekRecord, resolveDay: resolveDay,
     seriesOccursOn: seriesOccursOn, nextOccurrence: nextOccurrence,
-    absenceLabel: absenceLabel, dayItems: dayItems, dayHours: dayHours, weekHours: weekHours, round2: round2,
+    absenceLabel: absenceLabel, dayItems: dayItems, dayHours: dayHours, overlapMinutes: overlapMinutes, overlappingItems: overlappingItems, weekHours: weekHours, round2: round2,
     saldo: saldo, saldoAt: saldoAt, lastSaldoCheck: lastSaldoCheck, firstWeekWithShift: firstWeekWithShift,
     formatHours: formatHours, formatSigned: formatSigned,
     WEEKDAYS_SHORT: WEEKDAYS_SHORT, WEEKDAYS_LONG: WEEKDAYS_LONG, MONTHS_LONG: MONTHS_LONG, MONTHS_SHORT: MONTHS_SHORT
